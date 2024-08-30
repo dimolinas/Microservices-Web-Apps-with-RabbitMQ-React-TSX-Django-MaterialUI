@@ -1,0 +1,51 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: 'python3 app.py'
+    ports:
+      - 5001:5001
+    volumes:
+      - .:/backendservice2
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: 'python3 -u consumer.py'
+    depends_on:
+      - db
+    networks:
+      - mynetwork
+
+  db:
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_DATABASE: core
+      MYSQL_USER: microservice
+      MYSQL_PASSWORD: microservice
+      MYSQL_ROOT_PASSWORD: microservice
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - 3307:3306
+    networks:
+      - mynetwork
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+
+networks:
+  mynetwork:
+    external: true
+    name: mynetwork
+
+volumes:
+  dbdata:
